@@ -80,7 +80,7 @@ def _eval_fk_articulation_batched(
         joint_dof_dim,
         body_com,
         body_flags,
-        int(BodyFlags.ALL),
+        int(BodyFlags.ALL.value),
         body_q[problem_idx],
         body_qd[problem_idx],
     )

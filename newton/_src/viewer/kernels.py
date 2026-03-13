@@ -47,7 +47,7 @@ def compute_pick_state_kernel(
     """
     if body_index < 0:
         return
-    if body_flags[body_index] & newton.BodyFlags.KINEMATIC:
+    if body_flags[body_index] & newton.BodyFlags.KINEMATIC.value:
         pick_body[0] = -1
         return
 
@@ -84,7 +84,7 @@ def apply_picking_force_kernel(
     pick_body = pick_body_arr[0]
     if pick_body < 0:
         return
-    if body_flags[pick_body] & newton.BodyFlags.KINEMATIC:
+    if body_flags[pick_body] & newton.BodyFlags.KINEMATIC.value:
         return
 
     pick_pos_local = pick_state[0].picked_point_local
@@ -332,11 +332,11 @@ def compute_joint_basis_lines(
 
     joint_t = joint_type[joint_id]
     if (
-        joint_t != int(newton.JointType.PRISMATIC)
-        and joint_t != int(newton.JointType.REVOLUTE)
-        and joint_t != int(newton.JointType.D6)
-        and joint_t != int(newton.JointType.CABLE)
-        and joint_t != int(newton.JointType.BALL)
+        joint_t != int(newton.JointType.PRISMATIC.value)
+        and joint_t != int(newton.JointType.REVOLUTE.value)
+        and joint_t != int(newton.JointType.D6.value)
+        and joint_t != int(newton.JointType.CABLE.value)
+        and joint_t != int(newton.JointType.BALL.value)
     ):
         # Set NaN for unsupported joints to hide them
         line_starts[tid] = wp.vec3(wp.nan, wp.nan, wp.nan)

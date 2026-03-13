@@ -16,6 +16,8 @@
 import warp as wp
 
 from ..core.types import Axis, AxisType
+from .warp_math import quat_to_euler
+from .warp_math import transform_twist as wp_transform_twist
 
 
 @wp.func
@@ -112,7 +114,7 @@ def transform_twist(t: wp.transform, x: wp.spatial_vector) -> wp.spatial_vector:
         ``(linear, angular)``.
     """
     x_wp = wp.spatial_vector(wp.spatial_bottom(x), wp.spatial_top(x))
-    y_wp = wp.transform_twist(t, x_wp)
+    y_wp = wp_transform_twist(t, x_wp)
     return wp.spatial_vector(wp.spatial_bottom(y_wp), wp.spatial_top(y_wp))
 
 
@@ -179,7 +181,7 @@ def quat_decompose(q: wp.quat) -> wp.vec3:
     Returns:
         wp.vec3: Wrapped Euler coordinates ``(x, y, z)`` [rad].
     """
-    angles = wp.quat_to_euler(q, 2, 1, 0)
+    angles = quat_to_euler(q, 2, 1, 0)
     return wp.vec3(
         _wrap_angle_pm_pi(angles[0]),
         _wrap_angle_pm_pi(angles[1]),

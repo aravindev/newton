@@ -153,7 +153,7 @@ def _compute_shape_vbo_xforms(
     # Only mesh/convex_mesh shapes use model scale; other primitives have
     # their dimensions baked into the geometry mesh, so scale is (1,1,1).
     geo = shape_type[tid]
-    if geo == nt.GeoType.MESH or geo == nt.GeoType.CONVEX_MESH:
+    if geo == int(nt.GeoType.MESH.value) or geo == int(nt.GeoType.CONVEX_MESH.value):
         s = shape_scale[tid]
     else:
         s = wp.vec3(1.0, 1.0, 1.0)
@@ -731,9 +731,7 @@ class ViewerGL(ViewerBase):
         name: str,
         starts: wp.array(dtype=wp.vec3) | None,
         ends: wp.array(dtype=wp.vec3) | None,
-        colors: (
-            wp.array(dtype=wp.vec3) | wp.array(dtype=wp.float32) | tuple[float, float, float] | list[float] | None
-        ),
+        colors: wp.array(dtype=wp.vec3) | wp.array(dtype=wp.float32) | tuple[float, float, float] | list[float] | None,
         width: float = 0.01,
         hidden: bool = False,
     ):
@@ -1730,7 +1728,10 @@ class ViewerGL(ViewerBase):
             giz.manipulate(view_, proj_, giz.OPERATION.rotate, giz.MODE.world, M_, None, None)
             giz.manipulate(view_, proj_, giz.OPERATION.translate, giz.MODE.world, M_, None, None)
 
-            M[:] = M_.values.reshape(4, 4, order="F")
+            M[0] = M_.values.reshape(4, 4, order="F")[0]
+            M[1] = M_.values.reshape(4, 4, order="F")[1]
+            M[2] = M_.values.reshape(4, 4, order="F")[2]
+            M[3] = M_.values.reshape(4, 4, order="F")[3]
             transform[:] = wp.transform_from_matrix(M)
 
             giz.pop_id()

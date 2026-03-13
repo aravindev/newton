@@ -236,7 +236,7 @@ def eval_single_articulation_fk(
         X_j = wp.transform_identity()
         v_j = wp.spatial_vector(wp.vec3(), wp.vec3())
 
-        if type == JointType.PRISMATIC:
+        if type == 0:
             axis = joint_axis[qd_start]
 
             q = joint_q[q_start]
@@ -245,7 +245,7 @@ def eval_single_articulation_fk(
             X_j = wp.transform(axis * q, wp.quat_identity())
             v_j = wp.spatial_vector(axis * qd, wp.vec3())
 
-        if type == JointType.REVOLUTE:
+        if type == 1:
             axis = joint_axis[qd_start]
 
             q = joint_q[q_start]
@@ -254,7 +254,7 @@ def eval_single_articulation_fk(
             X_j = wp.transform(wp.vec3(), wp.quat_from_axis_angle(axis, q))
             v_j = wp.spatial_vector(wp.vec3(), axis * qd)
 
-        if type == JointType.BALL:
+        if type == 2:
             r = wp.quat(joint_q[q_start + 0], joint_q[q_start + 1], joint_q[q_start + 2], joint_q[q_start + 3])
 
             w = wp.vec3(joint_qd[qd_start + 0], joint_qd[qd_start + 1], joint_qd[qd_start + 2])
@@ -262,7 +262,7 @@ def eval_single_articulation_fk(
             X_j = wp.transform(wp.vec3(), r)
             v_j = wp.spatial_vector(wp.vec3(), w)
 
-        if type == JointType.FREE or type == JointType.DISTANCE:
+        if type == 4 or type == 7:
             t = wp.transform(
                 wp.vec3(joint_q[q_start + 0], joint_q[q_start + 1], joint_q[q_start + 2]),
                 wp.quat(joint_q[q_start + 3], joint_q[q_start + 4], joint_q[q_start + 5], joint_q[q_start + 6]),
@@ -276,7 +276,7 @@ def eval_single_articulation_fk(
             X_j = t
             v_j = v
 
-        if type == JointType.D6:
+        if type == 8:
             pos = wp.vec3(0.0)
             rot = wp.quat_identity()
             vel_v = wp.vec3(0.0)
@@ -526,6 +526,26 @@ def compute_shape_world_transforms(
 
 
 @wp.func
+def quat_twist(axis: wp.vec3, q: wp.quat) -> wp.quat:
+    """Extract the twist quaternion of ``q`` around ``axis``.
+
+    This performs a swing-twist decomposition and returns the component of
+    rotation in ``q`` whose rotation axis is parallel to ``axis``.
+
+    Args:
+        axis: Twist axis (expected to be normalized).
+        q: Input quaternion in ``(x, y, z, w)`` layout.
+
+    Returns:
+        wp.quat: Unit twist quaternion.
+    """
+    a = wp.vec3(q[0], q[1], q[2])
+    proj = wp.dot(a, axis)
+    a = proj * axis
+    return wp.normalize(wp.quat(a[0], a[1], a[2], q[3]))
+
+
+@wp.func
 def reconstruct_angular_q_qd(q_pc: wp.quat, w_err: wp.vec3, X_wp: wp.transform, axis: wp.vec3):
     """
     Reconstructs the angular joint coordinates and velocities given the relative rotation and angular velocity
@@ -542,7 +562,7 @@ def reconstruct_angular_q_qd(q_pc: wp.quat, w_err: wp.vec3, X_wp: wp.transform, 
         qd (float): The joint velocity coordinate.
     """
     axis_p = wp.transform_vector(X_wp, axis)
-    twist = wp.quat_twist(axis, q_pc)
+    twist = quat_twist(axis, q_pc)
     q = wp.acos(twist[3]) * 2.0 * wp.sign(wp.dot(axis, wp.vec3(twist[0], twist[1], twist[2])))
     qd = wp.dot(w_err, axis_p)
     return q, qd
@@ -648,7 +668,7 @@ def eval_articulation_ik(
     lin_axis_count = joint_dof_dim[joint_idx, 0]
     ang_axis_count = joint_dof_dim[joint_idx, 1]
 
-    if type == JointType.PRISMATIC:
+    if type == 0:
         axis = joint_axis[qd_start]
 
         # world space joint axis
@@ -663,7 +683,7 @@ def eval_articulation_ik(
 
         return
 
-    if type == JointType.REVOLUTE:
+    if type == 1:
         axis = joint_axis[qd_start]
         q_pc = wp.quat_inverse(q_p) * q_c
 
@@ -674,7 +694,7 @@ def eval_articulation_ik(
 
         return
 
-    if type == JointType.BALL:
+    if type == 2:
         q_pc = wp.quat_inverse(q_p) * q_c
 
         joint_q[q_start + 0] = q_pc[0]
@@ -689,10 +709,10 @@ def eval_articulation_ik(
 
         return
 
-    if type == JointType.FIXED:
+    if type == 3:
         return
 
-    if type == JointType.FREE or type == JointType.DISTANCE:
+    if type == 4 or type == 7:
         q_pc = wp.quat_inverse(q_p) * q_c
 
         x_err_c = wp.quat_rotate_inv(q_p, x_err)
@@ -718,7 +738,7 @@ def eval_articulation_ik(
 
         return
 
-    if type == JointType.D6:
+    if type == 8:
         x_err_c = wp.quat_rotate_inv(q_p, x_err)
         v_err_c = wp.quat_rotate_inv(q_p, v_err)
         if lin_axis_count > 0:
@@ -855,17 +875,17 @@ def jcalc_motion_subspace(
         isotropic angular DOF) and are primarily designed for VBD solver.
         If encountered, their Jacobian columns will remain zero.
     """
-    if type == JointType.PRISMATIC:
+    if type == 0:
         axis = joint_axis[qd_start]
         S_s = transform_twist(X_sc, wp.spatial_vector(axis, wp.vec3()))
         joint_S_s[qd_start] = S_s
 
-    elif type == JointType.REVOLUTE:
+    elif type == 1:
         axis = joint_axis[qd_start]
         S_s = transform_twist(X_sc, wp.spatial_vector(wp.vec3(), axis))
         joint_S_s[qd_start] = S_s
 
-    elif type == JointType.D6:
+    elif type == 8:
         if lin_axis_count > 0:
             axis = joint_axis[qd_start + 0]
             S_s = transform_twist(X_sc, wp.spatial_vector(axis, wp.vec3()))
@@ -891,7 +911,7 @@ def jcalc_motion_subspace(
             S_s = transform_twist(X_sc, wp.spatial_vector(wp.vec3(), axis))
             joint_S_s[qd_start + lin_axis_count + 2] = S_s
 
-    elif type == JointType.BALL:
+    elif type == 2:
         S_0 = transform_twist(X_sc, wp.spatial_vector(0.0, 0.0, 0.0, 1.0, 0.0, 0.0))
         S_1 = transform_twist(X_sc, wp.spatial_vector(0.0, 0.0, 0.0, 0.0, 1.0, 0.0))
         S_2 = transform_twist(X_sc, wp.spatial_vector(0.0, 0.0, 0.0, 0.0, 0.0, 1.0))
@@ -899,7 +919,7 @@ def jcalc_motion_subspace(
         joint_S_s[qd_start + 1] = S_1
         joint_S_s[qd_start + 2] = S_2
 
-    elif type == JointType.FREE or type == JointType.DISTANCE:
+    elif type == 4 or type == 7:
         joint_S_s[qd_start + 0] = transform_twist(X_sc, wp.spatial_vector(1.0, 0.0, 0.0, 0.0, 0.0, 0.0))
         joint_S_s[qd_start + 1] = transform_twist(X_sc, wp.spatial_vector(0.0, 1.0, 0.0, 0.0, 0.0, 0.0))
         joint_S_s[qd_start + 2] = transform_twist(X_sc, wp.spatial_vector(0.0, 0.0, 1.0, 0.0, 0.0, 0.0))

@@ -23,7 +23,7 @@ from typing import Any, Generic, TypeVar
 
 import numpy as np
 import warp as wp
-from warp._src import types as warp_types
+from warp import types as warp_types
 
 from ..core.types import nparray, override
 from ..geometry import Mesh

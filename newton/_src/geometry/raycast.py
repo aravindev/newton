@@ -553,32 +553,32 @@ def ray_intersect_geom(
     """
     t_hit = -1.0
 
-    if geomtype == GeoType.SPHERE:
+    if geomtype == int(GeoType.SPHERE.value):
         r = size[0]
         t_hit = ray_intersect_sphere(geom_to_world, ray_origin, ray_direction, r)
 
-    elif geomtype == GeoType.BOX:
+    elif geomtype == int(GeoType.BOX.value):
         t_hit = ray_intersect_box(geom_to_world, ray_origin, ray_direction, size)
 
-    elif geomtype == GeoType.CAPSULE:
+    elif geomtype == int(GeoType.CAPSULE.value):
         r = size[0]
         h = size[1]
         t_hit = ray_intersect_capsule(geom_to_world, ray_origin, ray_direction, r, h)
 
-    elif geomtype == GeoType.CYLINDER:
+    elif geomtype == int(GeoType.CYLINDER.value):
         r = size[0]
         h = size[1]
         t_hit = ray_intersect_cylinder(geom_to_world, ray_origin, ray_direction, r, h)
 
-    elif geomtype == GeoType.CONE:
+    elif geomtype == int(GeoType.CONE.value):
         r = size[0]
         h = size[1]
         t_hit = ray_intersect_cone(geom_to_world, ray_origin, ray_direction, r, h)
 
-    elif geomtype == GeoType.ELLIPSOID:
+    elif geomtype == int(GeoType.ELLIPSOID.value):
         t_hit = ray_intersect_ellipsoid(geom_to_world, ray_origin, ray_direction, size)
 
-    elif geomtype == GeoType.MESH or geomtype == GeoType.CONVEX_MESH:
+    elif geomtype == int(GeoType.MESH.value) or geomtype == int(GeoType.CONVEX_MESH.value):
         t_hit = ray_intersect_mesh(geom_to_world, ray_origin, ray_direction, size, mesh_id)
 
     return t_hit
@@ -648,7 +648,7 @@ def raycast_kernel(
     geomtype = geom_type[shape_idx]
 
     # Get mesh ID for mesh-like geometries
-    if geomtype == GeoType.MESH or geomtype == GeoType.CONVEX_MESH:
+    if geomtype == int(GeoType.MESH.value) or geomtype == int(GeoType.CONVEX_MESH.value):
         mesh_id = shape_source_ptr[shape_idx]
     else:
         mesh_id = wp.uint64(0)
@@ -792,7 +792,7 @@ def sensor_raycast_kernel(
     geomtype = geom_type[shape_idx]
 
     # Get mesh ID for mesh-like geometries
-    if geomtype == GeoType.MESH or geomtype == GeoType.CONVEX_MESH:
+    if geomtype == int(GeoType.MESH.value) or geomtype == int(GeoType.CONVEX_MESH.value):
         mesh_id = shape_source_ptr[shape_idx]
     else:
         mesh_id = wp.uint64(0)

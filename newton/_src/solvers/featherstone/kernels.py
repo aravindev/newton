@@ -157,19 +157,19 @@ def jcalc_transform(
     joint_q: wp.array(dtype=float),
     q_start: int,
 ):
-    if type == JointType.PRISMATIC:
+    if type == 0:
         q = joint_q[q_start]
         axis = joint_axis[axis_start]
         X_jc = wp.transform(axis * q, wp.quat_identity())
         return X_jc
 
-    if type == JointType.REVOLUTE:
+    if type == 1:
         q = joint_q[q_start]
         axis = joint_axis[axis_start]
         X_jc = wp.transform(wp.vec3(), wp.quat_from_axis_angle(axis, q))
         return X_jc
 
-    if type == JointType.BALL:
+    if type == 2:
         qx = joint_q[q_start + 0]
         qy = joint_q[q_start + 1]
         qz = joint_q[q_start + 2]
@@ -178,11 +178,11 @@ def jcalc_transform(
         X_jc = wp.transform(wp.vec3(), wp.quat(qx, qy, qz, qw))
         return X_jc
 
-    if type == JointType.FIXED:
+    if type == 3:
         X_jc = wp.transform_identity()
         return X_jc
 
-    if type == JointType.FREE or type == JointType.DISTANCE:
+    if type == 4 or type == 7:
         px = joint_q[q_start + 0]
         py = joint_q[q_start + 1]
         pz = joint_q[q_start + 2]
@@ -195,7 +195,7 @@ def jcalc_transform(
         X_jc = wp.transform(wp.vec3(px, py, pz), wp.quat(qx, qy, qz, qw))
         return X_jc
 
-    if type == JointType.D6:
+    if type == 8:
         pos = wp.vec3(0.0)
         rot = wp.quat_identity()
 
@@ -259,21 +259,21 @@ def jcalc_motion(
     # outputs
     joint_S_s: wp.array(dtype=wp.spatial_vector),
 ):
-    if type == JointType.PRISMATIC:
+    if type == 0:
         axis = joint_axis[qd_start]
         S_s = transform_twist(X_sc, wp.spatial_vector(axis, wp.vec3()))
         v_j_s = S_s * joint_qd[qd_start]
         joint_S_s[qd_start] = S_s
         return v_j_s
 
-    if type == JointType.REVOLUTE:
+    if type == 1:
         axis = joint_axis[qd_start]
         S_s = transform_twist(X_sc, wp.spatial_vector(wp.vec3(), axis))
         v_j_s = S_s * joint_qd[qd_start]
         joint_S_s[qd_start] = S_s
         return v_j_s
 
-    if type == JointType.D6:
+    if type == 8:
         v_j_s = wp.spatial_vector()
         if lin_axis_count > 0:
             axis = joint_axis[qd_start + 0]
@@ -308,7 +308,7 @@ def jcalc_motion(
 
         return v_j_s
 
-    if type == JointType.BALL:
+    if type == 2:
         S_0 = transform_twist(X_sc, wp.spatial_vector(0.0, 0.0, 0.0, 1.0, 0.0, 0.0))
         S_1 = transform_twist(X_sc, wp.spatial_vector(0.0, 0.0, 0.0, 0.0, 1.0, 0.0))
         S_2 = transform_twist(X_sc, wp.spatial_vector(0.0, 0.0, 0.0, 0.0, 0.0, 1.0))
@@ -319,10 +319,10 @@ def jcalc_motion(
 
         return S_0 * joint_qd[qd_start + 0] + S_1 * joint_qd[qd_start + 1] + S_2 * joint_qd[qd_start + 2]
 
-    if type == JointType.FIXED:
+    if type == 3:
         return wp.spatial_vector()
 
-    if type == JointType.FREE or type == JointType.DISTANCE:
+    if type == 4 or type == 7:
         v_j_s = transform_twist(
             X_sc,
             wp.spatial_vector(
@@ -374,7 +374,7 @@ def jcalc_tau(
     # outputs
     tau: wp.array(dtype=float),
 ):
-    if type == JointType.BALL:
+    if type == 2:
         # target_ke = joint_target_ke[dof_start]
         # target_kd = joint_target_kd[dof_start]
 
@@ -389,14 +389,14 @@ def jcalc_tau(
 
         return
 
-    if type == JointType.FREE or type == JointType.DISTANCE:
+    if type == 4 or type == 7:
         for i in range(6):
             S_s = joint_S_s[dof_start + i]
             tau[dof_start + i] = -wp.dot(S_s, body_f_s) + joint_f[dof_start + i]
 
         return
 
-    if type == JointType.PRISMATIC or type == JointType.REVOLUTE or type == JointType.D6:
+    if type == 0 or type == 1 or type == 8:
         axis_count = lin_axis_count + ang_axis_count
 
         for i in range(axis_count):
@@ -440,11 +440,11 @@ def jcalc_integrate(
     joint_q_new: wp.array(dtype=float),
     joint_qd_new: wp.array(dtype=float),
 ):
-    if type == JointType.FIXED:
+    if type == 3:
         return
 
     # prismatic / revolute
-    if type == JointType.PRISMATIC or type == JointType.REVOLUTE:
+    if type == 0 or type == 1:
         qdd = joint_qdd[dof_start]
         qd = joint_qd[dof_start]
         q = joint_q[coord_start]
@@ -458,7 +458,7 @@ def jcalc_integrate(
         return
 
     # ball
-    if type == JointType.BALL:
+    if type == 2:
         m_j = wp.vec3(joint_qdd[dof_start + 0], joint_qdd[dof_start + 1], joint_qdd[dof_start + 2])
         w_j = wp.vec3(joint_qd[dof_start + 0], joint_qd[dof_start + 1], joint_qd[dof_start + 2])
 
@@ -487,7 +487,7 @@ def jcalc_integrate(
 
         return
 
-    if type == JointType.FREE or type == JointType.DISTANCE:
+    if type == 4 or type == 7:
         a_s = wp.vec3(joint_qdd[dof_start + 0], joint_qdd[dof_start + 1], joint_qdd[dof_start + 2])
         m_s = wp.vec3(joint_qdd[dof_start + 3], joint_qdd[dof_start + 4], joint_qdd[dof_start + 5])
 
@@ -531,7 +531,7 @@ def jcalc_integrate(
         return
 
     # other joint types (compound, universal, D6)
-    if type == JointType.D6:
+    if type == 8:
         axis_count = lin_axis_count + ang_axis_count
 
         for i in range(axis_count):
@@ -1500,7 +1500,7 @@ def eval_single_articulation_fk_with_velocity_conversion(
         X_j = wp.transform_identity()
         v_j = wp.spatial_vector(wp.vec3(), wp.vec3())
 
-        if type == JointType.PRISMATIC:
+        if type == 0:
             axis = joint_axis[qd_start]
 
             q = joint_q[q_start]
@@ -1509,7 +1509,7 @@ def eval_single_articulation_fk_with_velocity_conversion(
             X_j = wp.transform(axis * q, wp.quat_identity())
             v_j = wp.spatial_vector(axis * qd, wp.vec3())
 
-        if type == JointType.REVOLUTE:
+        if type == 1:
             axis = joint_axis[qd_start]
 
             q = joint_q[q_start]
@@ -1518,7 +1518,7 @@ def eval_single_articulation_fk_with_velocity_conversion(
             X_j = wp.transform(wp.vec3(), wp.quat_from_axis_angle(axis, q))
             v_j = wp.spatial_vector(wp.vec3(), axis * qd)
 
-        if type == JointType.BALL:
+        if type == 2:
             r = wp.quat(joint_q[q_start + 0], joint_q[q_start + 1], joint_q[q_start + 2], joint_q[q_start + 3])
 
             w = wp.vec3(joint_qd[qd_start + 0], joint_qd[qd_start + 1], joint_qd[qd_start + 2])
@@ -1526,7 +1526,7 @@ def eval_single_articulation_fk_with_velocity_conversion(
             X_j = wp.transform(wp.vec3(), r)
             v_j = wp.spatial_vector(wp.vec3(), w)
 
-        if type == JointType.FREE or type == JointType.DISTANCE:
+        if type == 4 or type == 7:
             t = wp.transform(
                 wp.vec3(joint_q[q_start + 0], joint_q[q_start + 1], joint_q[q_start + 2]),
                 wp.quat(joint_q[q_start + 3], joint_q[q_start + 4], joint_q[q_start + 5], joint_q[q_start + 6]),
@@ -1540,7 +1540,7 @@ def eval_single_articulation_fk_with_velocity_conversion(
             X_j = t
             v_j = v
 
-        if type == JointType.D6:
+        if type == 8:
             pos = wp.vec3(0.0)
             rot = wp.quat_identity()
             vel_v = wp.vec3(0.0)
@@ -1609,7 +1609,7 @@ def eval_single_articulation_fk_with_velocity_conversion(
         # Velocity conversion for FREE and DISTANCE joints:
         # v_wc is a spatial twist at the origin, but body_qd should store COM velocity
         # Transform: v_com = v_origin + ω x r_com
-        if type == JointType.FREE or type == JointType.DISTANCE:
+        if type == 4 or type == 7:
             v_origin = wp.spatial_top(v_wc)
             omega = wp.spatial_bottom(v_wc)
             r_com = wp.transform_point(X_wc, body_com[child])
